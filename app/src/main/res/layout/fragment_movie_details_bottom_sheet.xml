@@ -1,100 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/rootLayout"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_bottom_sheet">
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/nestedScrollView"
-        android:layout_width="0dp"
+    <data>
+        <variable
+            name="viewModel"
+            type="com.example.moviesap.ui.viewmodel.SharedMovieViewModel" />
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/rootLayout"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:background="@drawable/bg_bottom_sheet">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/nestedScrollView"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
-            <ImageView
-                android:id="@+id/ivMoviePoster"
-                android:layout_width="159dp"
-                android:layout_height="304dp"
-                android:background="@drawable/bg_rounded_image"
-                android:clipToOutline="true"
-                android:scaleType="centerCrop"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/tvMovieTitle"
-                android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="15dp"
-                android:textColor="@android:color/white"
-                android:textStyle="bold"
-                app:autoSizeMaxTextSize="22sp"
-                app:autoSizeMinTextSize="14sp"
-                app:autoSizeStepGranularity="1sp"
-                app:autoSizeTextType="uniform"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/ivMoviePoster"
-                app:layout_constraintTop_toTopOf="@+id/ivMoviePoster"
-                tools:text="The Dark Knight" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/tvMovieDescription"
-                android:layout_width="0dp"
-
-                android:layout_height="219dp"
-                android:layout_marginTop="8dp"
-                android:lineSpacingExtra="6dp"
-                android:textColor="@android:color/white"
-                app:autoSizeMaxTextSize="18sp"
-                app:autoSizeMinTextSize="12sp"
-                app:autoSizeStepGranularity="1sp"
-                app:autoSizeTextType="uniform"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@+id/tvMovieTitle"
-                app:layout_constraintTop_toBottomOf="@+id/tvMovieTitle"
-                tools:text="A banker convicted of uxoricide forms a friendship over a quarter century with a hardened convict..." />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/tvRating"
-                android:layout_width="wrap_content"
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:textColor="@android:color/darker_gray"
-                app:autoSizeTextType="uniform"
-                app:autoSizeMinTextSize="12sp"
-                app:autoSizeMaxTextSize="16sp"
-                app:autoSizeStepGranularity="1sp"
-                app:layout_constraintStart_toStartOf="@+id/tvMovieDescription"
-                app:layout_constraintTop_toBottomOf="@+id/tvMovieDescription"
-                tools:text="⭐ 9.0" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/tvVotes"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@android:color/darker_gray"
-                app:autoSizeTextType="uniform"
-                app:autoSizeMinTextSize="12sp"
-                app:autoSizeMaxTextSize="16sp"
-                app:autoSizeStepGranularity="1sp"
-                app:layout_constraintEnd_toEndOf="@+id/tvMovieDescription"
-                app:layout_constraintTop_toTopOf="@+id/tvRating"
-                tools:text="2.3M votes" />
+                <ImageView
+                    android:id="@+id/ivMoviePoster"
+                    android:layout_width="159dp"
+                    android:layout_height="304dp"
+                    android:background="@drawable/bg_rounded_image"
+                    android:clipToOutline="true"
+                    android:scaleType="centerCrop"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:imageUrl="@{viewModel.selectedMovie.primaryImage}"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.core.widget.NestedScrollView>
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tvMovieTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_marginStart="15dp"
+                    android:text="@{viewModel.selectedMovie.primaryTitle}"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    app:autoSizeMaxTextSize="22sp"
+                    app:autoSizeMinTextSize="14sp"
+                    app:autoSizeStepGranularity="1sp"
+                    app:autoSizeTextType="uniform"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toEndOf="@+id/ivMoviePoster"
+                    app:layout_constraintTop_toTopOf="@+id/ivMoviePoster"
+                    tools:text="The Dark Knight" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tvMovieDescription"
+                    android:layout_width="0dp"
+                    android:text="@{viewModel.selectedMovie.description}"
+                    android:layout_height="219dp"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingExtra="6dp"
+                    android:textColor="@android:color/white"
+                    app:autoSizeMaxTextSize="18sp"
+                    app:autoSizeMinTextSize="12sp"
+                    app:autoSizeStepGranularity="1sp"
+                    app:autoSizeTextType="uniform"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="@+id/tvMovieTitle"
+                    app:layout_constraintTop_toBottomOf="@+id/tvMovieTitle"
+                    tools:text="A banker convicted of uxoricide forms a friendship over a quarter century with a hardened convict..." />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tvRating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@android:color/darker_gray"
+                    app:autoSizeMaxTextSize="16sp"
+                    app:autoSizeMinTextSize="12sp"
+                    app:autoSizeStepGranularity="1sp"
+                    app:autoSizeTextType="uniform"
+                    app:layout_constraintStart_toStartOf="@+id/tvMovieDescription"
+                    app:layout_constraintTop_toBottomOf="@+id/tvMovieDescription"
+                    app:rating="@{viewModel.selectedMovie.averageRating}"
+                    tools:text="⭐ 9.0" />
+
+                <androidx.appcompat.widget.AppCompatTextView
+                    android:id="@+id/tvVotes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@android:color/darker_gray"
+                    app:autoSizeTextType="uniform"
+                    app:autoSizeMinTextSize="12sp"
+                    app:autoSizeMaxTextSize="16sp"
+                    app:votes="@{viewModel.selectedMovie.numVotes}"
+                    app:autoSizeStepGranularity="1sp"
+                    app:layout_constraintEnd_toEndOf="@+id/tvMovieDescription"
+                    app:layout_constraintTop_toTopOf="@+id/tvRating"
+                    tools:text="2.3M votes" />
+
+
+
+
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </androidx.core.widget.NestedScrollView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

@@ -12,25 +12,30 @@ import com.example.moviesap.ui.adapter.BannerMoviesAdapter
 import com.example.moviesap.ui.adapter.VerticalMoviesAdapter
 import com.example.moviesap.ui.fragments.MovieDetailsBottomSheet
 import com.example.moviesap.ui.viewmodel.MoviesViewModel
+import com.example.moviesap.ui.viewmodel.MoviesViewModelFactory
+import com.example.moviesap.ui.viewmodel.SharedMovieViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: MoviesViewModel by viewModels()
+    private val viewModel: MoviesViewModel by viewModels {
+        MoviesViewModelFactory(applicationContext)
+    }
+    private val sharedViewModel: SharedMovieViewModel by viewModels()
     private val bannerAdapter by lazy {
         BannerMoviesAdapter(
             onItemClick = {movieItem ->
-                val sheet = MovieDetailsBottomSheet(movieItem)
-                sheet.show(supportFragmentManager, "MovieDetailsBottomSheet")
+                sharedViewModel.setMovie(movieItem)
+                MovieDetailsBottomSheet().show(supportFragmentManager, "MovieDetailsBottomSheet")
             }
         )
     }
     private val mainAdapter by lazy {
         VerticalMoviesAdapter(
             onItemClick = {movieItem ->
-                val sheet = MovieDetailsBottomSheet(movieItem)
-                sheet.show(supportFragmentManager, "MovieDetailsBottomSheet")
+                sharedViewModel.setMovie(movieItem)
+                MovieDetailsBottomSheet().show(supportFragmentManager, "MovieDetailsBottomSheet")
             }
         )
     }
@@ -42,7 +47,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupBannerRecycler()
         setupMainRecycler()
+        setupSwipeToRefresh()
         observeMovies()
+
+    }
+    private fun setupSwipeToRefresh() {
+        binding.swipeRefreshLayout.setOnRefreshListener {
+            lifecycleScope.launch {
+                viewModel.refreshMoviesFromApi()
+                binding.swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
     }
 
     private fun setupMainRecycler() {
@@ -98,5 +114,6 @@ class MainActivity : AppCompatActivity() {
                 mainAdapter.submitList(list)
             }
         }
+
     }
 }

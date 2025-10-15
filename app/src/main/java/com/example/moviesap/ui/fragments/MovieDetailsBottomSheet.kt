@@ -4,20 +4,18 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.bumptech.glide.Glide
-import com.example.moviesap.R
-import com.example.moviesap.data.models.MovieItem
+import androidx.fragment.app.activityViewModels
 import com.example.moviesap.databinding.FragmentMovieDetailsBottomSheetBinding
+import com.example.moviesap.ui.viewmodel.SharedMovieViewModel
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
-class MovieDetailsBottomSheet(
-    private val movie: MovieItem
-) : BottomSheetDialogFragment() {
+class MovieDetailsBottomSheet : BottomSheetDialogFragment() {
 
     private var _binding: FragmentMovieDetailsBottomSheetBinding? = null
     private val binding get() = _binding!!
+    private val sharedViewModel: SharedMovieViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -25,39 +23,17 @@ class MovieDetailsBottomSheet(
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentMovieDetailsBottomSheetBinding.inflate(inflater, container, false)
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.viewModel = sharedViewModel
         return binding.root
     }
 
     override fun onStart() {
         super.onStart()
-
-        // Make sure the sheet expands fully
-        val bottomSheet = (dialog as? BottomSheetDialog)
-            ?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-        bottomSheet?.let {
+        (dialog as? BottomSheetDialog)?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.let {
             val behavior = BottomSheetBehavior.from(it)
             behavior.state = BottomSheetBehavior.STATE_EXPANDED
             behavior.skipCollapsed = true
-        }
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        bindData()
-    }
-
-    private fun bindData() {
-        binding.apply {
-            tvMovieTitle.text = movie.primaryTitle
-            tvMovieDescription.text = movie.description
-            tvRating.text = "⭐ ${movie.averageRating}"
-            tvVotes.text = "👍 ${movie.numVotes}"
-
-            Glide.with(ivMoviePoster.context)
-                .load(movie.primaryImage)
-                .centerCrop()
-                .placeholder(R.drawable.test)
-                .into(ivMoviePoster)
         }
     }
 

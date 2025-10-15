@@ -1,0 +1,16 @@
+package com.example.moviesap.ui.viewmodel
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.example.moviesap.data.models.MovieItem
+
+class SharedMovieViewModel : ViewModel() {
+
+    private val _selectedMovie = MutableLiveData<MovieItem?>()
+    val selectedMovie: LiveData<MovieItem?> get() = _selectedMovie
+
+    fun setMovie(movie: MovieItem) {
+        _selectedMovie.value = movie
+    }
+}

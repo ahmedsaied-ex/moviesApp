@@ -14,7 +14,6 @@ class RetrofitInstance {
             .build()
 
     }
-
      val api: ImdbApiService by lazy {
         retrofit.create(ImdbApiService::class.java)
     }
