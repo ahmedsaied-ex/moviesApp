@@ -7,14 +7,16 @@ import com.example.moviesap.data.remote.ImdbApiService
 import com.example.moviesap.data.models.MovieItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class MovieRepository(
+@Singleton
+class MovieRepository @Inject constructor(
     private val dao: MovieDao,
     private val api: ImdbApiService
 ) {
 
-
-    suspend fun getCachedMoviesOnce(): List<MovieItem>   =
+    suspend fun getCachedMoviesOnce(): List<MovieItem> =
         withContext(Dispatchers.IO) {
             dao.getAllMoviesOnce().map { it.toMovieItem() }
         }
@@ -33,5 +35,4 @@ class MovieRepository(
             Result.failure(e)
         }
     }
-
 }

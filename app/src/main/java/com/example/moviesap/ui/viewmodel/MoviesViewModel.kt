@@ -5,13 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.moviesap.repository.MovieRepository
 import com.example.moviesap.data.models.MovieItem
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
+import javax.inject.Inject
 
-class MoviesViewModel(private val repo: MovieRepository) : ViewModel() {
+@HiltViewModel
+class MoviesViewModel @Inject constructor(
+    private val repo: MovieRepository
+) : ViewModel() {
 
     private val _movies = MutableStateFlow<List<MovieItem>>(emptyList())
     val movies: StateFlow<List<MovieItem>> = _movies
