@@ -84,15 +84,6 @@ class MainActivity : AppCompatActivity() {
     private fun observeMovies() {
         viewModel.fetchMovies()
 
-        // Observe loading state
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.loading.collect { loading ->
-                    binding.loadingIndicator.visibility = if (loading) View.VISIBLE else View.GONE
-                }
-            }
-        }
-
         // Observe error state
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -107,7 +98,17 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+
         }
+        // Observe loading state
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.loading.collect { loading ->
+                    binding.loadingIndicator.visibility = if (loading) View.VISIBLE else View.GONE
+                }
+            }
+        }
+
 
         // Observe movies list
         lifecycleScope.launch {

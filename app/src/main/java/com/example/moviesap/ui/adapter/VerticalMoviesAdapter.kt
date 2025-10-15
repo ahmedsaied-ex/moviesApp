@@ -11,42 +11,23 @@ import com.example.moviesap.R
 import com.example.moviesap.data.models.MovieItem
 import com.example.moviesap.databinding.MovieItemLayoutBinding
 
-
 class VerticalMoviesAdapter(
     private val onItemClick: (MovieItem) -> Unit
-
 ) : ListAdapter<MovieItem, VerticalMoviesAdapter.MovieViewHolder>(DiffCallback()) {
 
-    inner class MovieViewHolder(private val binding: MovieItemLayoutBinding) :
+    inner class MovieViewHolder(val binding: MovieItemLayoutBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(movie: MovieItem) {
-            binding.apply {
-                tvMovieName.text = movie.primaryTitle
-                tvDescription.text = movie.description
-                tvAverageRating.text = "⭐ ${movie.averageRating}"
-                tvRatedNumber.text = "👍 ${movie.numVotes}"
-
-                // Load image with rounded corners using Glide
-                Glide.with(ivMovie.context)
-                    .load(movie.primaryImage)
-                    .centerCrop()     // or .fitCenter() or .circleCrop()
-                    .placeholder(R.drawable.test)
-                    .into(binding.ivMovie)
-
-                root.setOnClickListener {
-                    onItemClick(movie)
-                }
-            }
+            binding.movie = movie
+            binding.executePendingBindings()
+            binding.root.setOnClickListener { onItemClick(movie) }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MovieViewHolder {
-        val binding = MovieItemLayoutBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
+        val inflater = LayoutInflater.from(parent.context)
+        val binding = MovieItemLayoutBinding.inflate(inflater, parent, false)
         return MovieViewHolder(binding)
     }
 
