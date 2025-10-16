@@ -5,52 +5,57 @@ import android.util.Log
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.moviesap.databinding.ActivityMainBinding
 import com.example.moviesap.ui.adapter.BannerMoviesAdapter
 import com.example.moviesap.ui.adapter.VerticalMoviesAdapter
 import com.example.moviesap.ui.fragments.MovieDetailsBottomSheet
 import com.example.moviesap.ui.viewmodel.MoviesViewModel
-import com.example.moviesap.ui.viewmodel.MoviesViewModelFactory
 import com.example.moviesap.ui.viewmodel.SharedMovieViewModel
-import kotlinx.coroutines.flow.collectLatest
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: MoviesViewModel by viewModels {
-        MoviesViewModelFactory(applicationContext)
-    }
+
+    // Hilt will automatically inject dependencies
+    private val viewModel: MoviesViewModel by viewModels()
     private val sharedViewModel: SharedMovieViewModel by viewModels()
+
     private val bannerAdapter by lazy {
         BannerMoviesAdapter(
-            onItemClick = {movieItem ->
+            onItemClick = { movieItem ->
                 sharedViewModel.setMovie(movieItem)
                 MovieDetailsBottomSheet().show(supportFragmentManager, "MovieDetailsBottomSheet")
             }
         )
     }
+
     private val mainAdapter by lazy {
         VerticalMoviesAdapter(
-            onItemClick = {movieItem ->
+            onItemClick = { movieItem ->
                 sharedViewModel.setMovie(movieItem)
                 MovieDetailsBottomSheet().show(supportFragmentManager, "MovieDetailsBottomSheet")
             }
         )
     }
-    override fun onCreate(
-        savedInstanceState: Bundle?
-    ) {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         setupBannerRecycler()
         setupMainRecycler()
         setupSwipeToRefresh()
         observeMovies()
-
     }
+
     private fun setupSwipeToRefresh() {
         binding.swipeRefreshLayout.setOnRefreshListener {
             lifecycleScope.launch {
@@ -58,7 +63,6 @@ class MainActivity : AppCompatActivity() {
                 binding.swipeRefreshLayout.isRefreshing = false
             }
         }
-
     }
 
     private fun setupMainRecycler() {
@@ -75,45 +79,50 @@ class MainActivity : AppCompatActivity() {
         binding.rvBannerMovies.adapter = bannerAdapter
         binding.rvBannerMovies.setHasFixedSize(true)
         binding.rvBannerMovies.isNestedScrollingEnabled = false
-
-
     }
 
     private fun observeMovies() {
-        // OR if you're using Flow instead of LiveData:
         viewModel.fetchMovies()
-        lifecycleScope.launch {
-            viewModel.loading.collectLatest { loading ->
-                if (loading) {
-                    binding.loadingIndicator.visibility = View.VISIBLE
-                } else {
-                    binding.loadingIndicator.visibility = View.GONE
-                }
-            }
-        }
-        lifecycleScope.launch {
-            viewModel.error.collectLatest { error ->
-                if (error != null) {
-                    binding.tvError.visibility = View.VISIBLE
-                    binding.ivErrorLogo.visibility = View.VISIBLE
-                    binding.tvError.text = error
-                } else {
-                    binding.tvError.visibility = View.GONE
-                    binding.ivErrorLogo.visibility = View.GONE
-                }
-            }
-        }
-        lifecycleScope.launch {
-            viewModel.movies.collectLatest { list ->
-                val filtered = list.filter {
-                    it.averageRating >= 8.9
-                }
 
-                Log.d("Movies_TAg", filtered.toString())
-                bannerAdapter.submitList(filtered)
-                mainAdapter.submitList(list)
+        // Observe error state
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.error.collect { error ->
+                    if (error != null) {
+                        binding.tvError.visibility = View.VISIBLE
+                        binding.ivErrorLogo.visibility = View.VISIBLE
+                        binding.tvError.text = error
+                    } else {
+                        binding.tvError.visibility = View.GONE
+                        binding.ivErrorLogo.visibility = View.GONE
+                    }
+                }
+            }
+
+        }
+        // Observe loading state
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.loading.collect { loading ->
+                    binding.loadingIndicator.visibility = if (loading) View.VISIBLE else View.GONE
+                }
             }
         }
 
+
+        // Observe movies list
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.movies.collect { list ->
+                    val filtered = list.filter {
+                        it.averageRating >= 8.9
+                    }
+
+                    Log.d("Movies_TAg", filtered.toString())
+                    bannerAdapter.submitList(filtered)
+                    mainAdapter.submitList(list)
+                }
+            }
+        }
     }
 }
