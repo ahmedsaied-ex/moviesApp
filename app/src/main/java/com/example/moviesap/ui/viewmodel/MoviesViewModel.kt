@@ -1,10 +1,9 @@
 package com.example.moviesap.ui.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.moviesap.repository.MovieRepository
-import com.example.moviesap.data.models.MovieItem
+import com.example.moviesap.ui.states.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,71 +17,54 @@ class MoviesViewModel @Inject constructor(
     private val repo: MovieRepository
 ) : ViewModel() {
 
-    private val _movies = MutableStateFlow<List<MovieItem>>(emptyList())
-    val movies: StateFlow<List<MovieItem>> = _movies
-
-    private val _loading = MutableStateFlow(false)
-    val loading: StateFlow<Boolean> = _loading
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
+    val uiState: StateFlow<UiState> = _uiState
 
     fun fetchMovies() {
         viewModelScope.launch {
-            _loading.value = true
-            _error.value = null
+            _uiState.value = UiState.Loading
             try {
+                // Try to load cached data first
                 val cached = repo.getCachedMoviesOnce()
                 if (cached.isNotEmpty()) {
-                    _movies.value = cached
-                    _loading.value = false
-                    launch {
-                        try {
-                            val net = repo.refreshFromNetwork()
-                            net.onSuccess { refreshed ->
-                                _movies.value = refreshed
-                            }.onFailure {
-                                Log.e("NETWORK_ERROR", it.message ?: "Unknown network error")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("NETWORK_ERROR", e.message ?: "Unexpected error")
-                        }
-                    }
+                    _uiState.value = UiState.Success(cached, isFromCache = true)
+                    // Attempt background refresh
+                    refreshFromNetworkSilently()
                     return@launch
                 }
+
+                // Otherwise, get data directly from network
                 val result = repo.refreshFromNetwork()
                 result.onSuccess { list ->
-                    _movies.value = list
+                    _uiState.value = UiState.Success(list, isFromCache = false)
                 }.onFailure { e ->
-                    _error.value = getReadableErrorMessage(e)
-                    Log.e("NETWORK_ERROR", e.message ?: "Network error")
+                    _uiState.value = UiState.Error(getReadableErrorMessage(e))
                 }
 
             } catch (e: Exception) {
-                _error.value = getReadableErrorMessage(e)
-                Log.e("NETWORK_ERROR", e.message ?: "Unexpected error")
-            } finally {
-                _loading.value = false
+                _uiState.value = UiState.Error(getReadableErrorMessage(e))
             }
         }
     }
 
-    suspend fun refreshMoviesFromApi(): Result<Unit> {
-        _loading.value = true
-        _error.value = null
-        return try {
+    private fun refreshFromNetworkSilently() {
+        viewModelScope.launch {
+            val result = repo.refreshFromNetwork()
+            result.onSuccess { refreshed ->
+                _uiState.value = UiState.Success(refreshed, isFromCache = false)
+            }
+        }
+    }
+
+    fun refreshMoviesFromApi() {
+        viewModelScope.launch {
+            _uiState.value = UiState.Loading
             val result = repo.refreshFromNetwork()
             result.onSuccess { list ->
-                _movies.value = list.toList()
+                _uiState.value = UiState.Success(list, isFromCache = false)
             }.onFailure { e ->
-                _error.value = getReadableErrorMessage(e)
+                _uiState.value = UiState.Error(getReadableErrorMessage(e))
             }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            _error.value = getReadableErrorMessage(e)
-            Result.failure(e)
-        } finally {
-            _loading.value = false
         }
     }
 

@@ -9,10 +9,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.moviesap.data.models.MovieItem
 import com.example.moviesap.databinding.ActivityMainBinding
 import com.example.moviesap.ui.adapter.BannerMoviesAdapter
 import com.example.moviesap.ui.adapter.VerticalMoviesAdapter
 import com.example.moviesap.ui.fragments.MovieDetailsBottomSheet
+import com.example.moviesap.ui.states.UiState
 import com.example.moviesap.ui.viewmodel.MoviesViewModel
 import com.example.moviesap.ui.viewmodel.SharedMovieViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -22,27 +24,20 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
-    // Hilt will automatically inject dependencies
     private val viewModel: MoviesViewModel by viewModels()
     private val sharedViewModel: SharedMovieViewModel by viewModels()
 
     private val bannerAdapter by lazy {
-        BannerMoviesAdapter(
-            onItemClick = { movieItem ->
-                sharedViewModel.setMovie(movieItem)
-                MovieDetailsBottomSheet().show(supportFragmentManager, "MovieDetailsBottomSheet")
-            }
-        )
+        BannerMoviesAdapter(onItemClick = { openBottomSheet(it) })
     }
 
     private val mainAdapter by lazy {
-        VerticalMoviesAdapter(
-            onItemClick = { movieItem ->
-                sharedViewModel.setMovie(movieItem)
-                MovieDetailsBottomSheet().show(supportFragmentManager, "MovieDetailsBottomSheet")
-            }
-        )
+        VerticalMoviesAdapter(onItemClick = { openBottomSheet(it) })
+    }
+
+    private fun openBottomSheet(movieItem: MovieItem) {
+        sharedViewModel.setMovie(movieItem)
+        MovieDetailsBottomSheet().show(supportFragmentManager, "MovieDetailsBottomSheet")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +48,9 @@ class MainActivity : AppCompatActivity() {
         setupBannerRecycler()
         setupMainRecycler()
         setupSwipeToRefresh()
-        observeMovies()
+        observeUiState()
+
+        viewModel.fetchMovies()
     }
 
     private fun setupSwipeToRefresh() {
@@ -66,63 +63,59 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupMainRecycler() {
-        binding.rvMainMovies.layoutManager =
-            LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
-        binding.rvMainMovies.adapter = mainAdapter
-        binding.rvMainMovies.setHasFixedSize(true)
-        binding.rvMainMovies.isNestedScrollingEnabled = true
+        binding.rvMainMovies.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
+            adapter = mainAdapter
+            setHasFixedSize(true)
+            isNestedScrollingEnabled = true
+        }
     }
 
     private fun setupBannerRecycler() {
-        binding.rvBannerMovies.layoutManager =
-            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        binding.rvBannerMovies.adapter = bannerAdapter
-        binding.rvBannerMovies.setHasFixedSize(true)
-        binding.rvBannerMovies.isNestedScrollingEnabled = false
+        binding.rvBannerMovies.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = bannerAdapter
+            setHasFixedSize(true)
+            isNestedScrollingEnabled = false
+        }
     }
 
-    private fun observeMovies() {
-        viewModel.fetchMovies()
-
-        // Observe error state
+    private fun observeUiState() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.error.collect { error ->
-                    if (error != null) {
-                        binding.tvError.visibility = View.VISIBLE
-                        binding.ivErrorLogo.visibility = View.VISIBLE
-                        binding.tvError.text = error
-                    } else {
-                        binding.tvError.visibility = View.GONE
-                        binding.ivErrorLogo.visibility = View.GONE
+                viewModel.uiState.collect { state ->
+                    when (state) {
+                        is UiState.Loading -> showLoading()
+                        is UiState.Success -> showMovies(state.movies)
+                        is UiState.Error -> showError(state.message)
                     }
                 }
             }
-
         }
-        // Observe loading state
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.loading.collect { loading ->
-                    binding.loadingIndicator.visibility = if (loading) View.VISIBLE else View.GONE
-                }
-            }
-        }
+    }
 
+    private fun showLoading() {
+        binding.loadingIndicator.visibility = View.VISIBLE
+        binding.tvError.visibility = View.GONE
+        binding.ivErrorLogo.visibility = View.GONE
+    }
 
-        // Observe movies list
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.movies.collect { list ->
-                    val filtered = list.filter {
-                        it.averageRating >= 8.9
-                    }
+    private fun showMovies(list: List<MovieItem>) {
+        binding.loadingIndicator.visibility = View.GONE
+        binding.tvError.visibility = View.GONE
+        binding.ivErrorLogo.visibility = View.GONE
 
-                    Log.d("Movies_TAg", filtered.toString())
-                    bannerAdapter.submitList(filtered)
-                    mainAdapter.submitList(list)
-                }
-            }
-        }
+        val filtered = list.filter { it.averageRating >= 8.9 }
+        Log.d("Movies_TAG", filtered.toString())
+
+        bannerAdapter.submitList(filtered)
+        mainAdapter.submitList(list)
+    }
+
+    private fun showError(message: String) {
+        binding.loadingIndicator.visibility = View.GONE
+        binding.tvError.visibility = View.VISIBLE
+        binding.ivErrorLogo.visibility = View.VISIBLE
+        binding.tvError.text = message
     }
 }
