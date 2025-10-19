@@ -9,10 +9,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.moviesap.data.models.MovieItem
 import com.example.moviesap.databinding.ActivityMainBinding
-import com.example.moviesap.ui.adapter.BannerMoviesAdapter
-import com.example.moviesap.ui.adapter.VerticalMoviesAdapter
+import com.example.moviesap.ui.MovieListItem
+import com.example.moviesap.ui.adapter.UnifiedMoviesAdapter
 import com.example.moviesap.ui.fragments.MovieDetailsBottomSheet
 import com.example.moviesap.ui.states.UiState
 import com.example.moviesap.ui.viewmodel.MoviesViewModel
@@ -27,13 +28,11 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MoviesViewModel by viewModels()
     private val sharedViewModel: SharedMovieViewModel by viewModels()
 
-    private val bannerAdapter by lazy {
-        BannerMoviesAdapter(onItemClick = { openBottomSheet(it) })
+    private val mainAdapter by lazy {
+        UnifiedMoviesAdapter(onItemClick = { openBottomSheet(it) })
     }
 
-    private val mainAdapter by lazy {
-        VerticalMoviesAdapter(onItemClick = { openBottomSheet(it) })
-    }
+    private var isLoadingMore = false
 
     private fun openBottomSheet(movieItem: MovieItem) {
         sharedViewModel.setMovie(movieItem)
@@ -45,9 +44,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupBannerRecycler()
         setupMainRecycler()
         setupSwipeToRefresh()
+        setupPaginationListener()
         observeUiState()
 
         viewModel.fetchMovies()
@@ -64,20 +63,37 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupMainRecycler() {
         binding.rvMainMovies.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
+            layoutManager = LinearLayoutManager(
+                this@MainActivity,
+                LinearLayoutManager.VERTICAL,
+                false
+            )
             adapter = mainAdapter
-            setHasFixedSize(true)
-            isNestedScrollingEnabled = true
+            setHasFixedSize(false)
         }
     }
 
-    private fun setupBannerRecycler() {
-        binding.rvBannerMovies.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
-            adapter = bannerAdapter
-            setHasFixedSize(true)
-            isNestedScrollingEnabled = false
-        }
+    private fun setupPaginationListener() {
+        binding.rvMainMovies.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val visibleItemCount = layoutManager.childCount
+                val totalItemCount = layoutManager.itemCount
+                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+                // Load more when user is 5 items away from the bottom
+                if (!isLoadingMore &&
+                    (visibleItemCount + firstVisibleItemPosition) >= totalItemCount - 5 &&
+                    firstVisibleItemPosition >= 0 &&
+                    totalItemCount > 0) {
+
+                    Log.d("MainActivity", "Loading more movies...")
+                    viewModel.loadMoreMovies()
+                }
+            }
+        })
     }
 
     private fun observeUiState() {
@@ -86,7 +102,8 @@ class MainActivity : AppCompatActivity() {
                 viewModel.uiState.collect { state ->
                     when (state) {
                         is UiState.Loading -> showLoading()
-                        is UiState.Success -> showMovies(state.movies)
+                        is UiState.Success -> showMovies(state.movies, state.hasMore)
+                        is UiState.LoadingMore -> showLoadingMore()
                         is UiState.Error -> showError(state.message)
                     }
                 }
@@ -98,18 +115,40 @@ class MainActivity : AppCompatActivity() {
         binding.loadingIndicator.visibility = View.VISIBLE
         binding.tvError.visibility = View.GONE
         binding.ivErrorLogo.visibility = View.GONE
+        isLoadingMore = false
     }
 
-    private fun showMovies(list: List<MovieItem>) {
+    private fun showLoadingMore() {
         binding.loadingIndicator.visibility = View.GONE
         binding.tvError.visibility = View.GONE
         binding.ivErrorLogo.visibility = View.GONE
+        isLoadingMore = true
 
+        Log.d("MainActivity", "Loading more state activated")
+    }
+
+    private fun showMovies(list: List<MovieItem>, hasMore: Boolean) {
+        binding.loadingIndicator.visibility = View.GONE
+        binding.tvError.visibility = View.GONE
+        binding.ivErrorLogo.visibility = View.GONE
+        isLoadingMore = false
+
+        // Filter high-rated movies for banner
         val filtered = list.filter { it.averageRating >= 8.9 }
-        Log.d("Movies_TAG", filtered.toString())
 
-        bannerAdapter.submitList(filtered)
-        mainAdapter.submitList(list)
+        Log.d("MainActivity", "Displayed: ${list.size}, Banner: ${filtered.size}, HasMore: $hasMore")
+
+        // Create unified list with banner at top and movies below
+        val unifiedList = mutableListOf<MovieListItem>()
+
+        // Add banner as first item
+        unifiedList.add(MovieListItem.BannerItem(filtered))
+
+        // Add all movies as regular items
+        unifiedList.addAll(list.map { MovieListItem.RegularItem(it) })
+
+        // Submit the unified list to adapter
+        mainAdapter.submitList(unifiedList)
     }
 
     private fun showError(message: String) {
@@ -117,5 +156,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvError.visibility = View.VISIBLE
         binding.ivErrorLogo.visibility = View.VISIBLE
         binding.tvError.text = message
+        isLoadingMore = false
     }
 }
