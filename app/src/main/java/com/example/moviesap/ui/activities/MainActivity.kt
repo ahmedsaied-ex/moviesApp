@@ -53,6 +53,7 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch {
                 viewModel.refreshMoviesFromApi()
                 binding.swipeRefreshLayout.isRefreshing = false
+
             }
         }
     }

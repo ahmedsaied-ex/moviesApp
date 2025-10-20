@@ -1,5 +1,6 @@
 package com.example.moviesap.data.local
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -17,8 +18,10 @@ interface MovieDao {
     @Query("SELECT * FROM movies")
     suspend fun getAllMoviesOnce(): List<MovieEntity>
 
-    // insert or replace (upsert)
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Query("SELECT * FROM movies")
+    fun getAllMoviesPaging(): PagingSource<Int, MovieEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE) // insert or replace (upsert)
     suspend fun insertMovies(movies: List<MovieEntity>)
 
     // optional: clear cache
