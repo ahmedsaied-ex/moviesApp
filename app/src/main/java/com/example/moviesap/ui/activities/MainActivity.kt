@@ -10,9 +10,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.moviesap.data.models.MovieItem
+import com.example.moviesap.data.models.MovieListItem
 import com.example.moviesap.databinding.ActivityMainBinding
-import com.example.moviesap.ui.adapter.BannerMoviesAdapter
-import com.example.moviesap.ui.adapter.VerticalMoviesAdapter
+import com.example.moviesap.ui.adapter.UnifiedMoviesAdapter
 import com.example.moviesap.ui.fragments.MovieDetailsBottomSheet
 import com.example.moviesap.ui.states.UiState
 import com.example.moviesap.ui.viewmodel.MoviesViewModel
@@ -27,12 +27,8 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MoviesViewModel by viewModels()
     private val sharedViewModel: SharedMovieViewModel by viewModels()
 
-    private val bannerAdapter by lazy {
-        BannerMoviesAdapter(onItemClick = { openBottomSheet(it) })
-    }
-
-    private val mainAdapter by lazy {
-        VerticalMoviesAdapter(onItemClick = { openBottomSheet(it) })
+    private val unifiedAdapter by lazy {
+        UnifiedMoviesAdapter(onItemClick = { openBottomSheet(it) })
     }
 
     private fun openBottomSheet(movieItem: MovieItem) {
@@ -45,8 +41,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupBannerRecycler()
-        setupMainRecycler()
+        setupRecyclerView()
         setupSwipeToRefresh()
         observeUiState()
 
@@ -62,21 +57,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupMainRecycler() {
+    private fun setupRecyclerView() {
         binding.rvMainMovies.apply {
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
-            adapter = mainAdapter
+            adapter = unifiedAdapter
             setHasFixedSize(true)
-            isNestedScrollingEnabled = true
-        }
-    }
-
-    private fun setupBannerRecycler() {
-        binding.rvBannerMovies.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
-            adapter = bannerAdapter
-            setHasFixedSize(true)
-            isNestedScrollingEnabled = false
         }
     }
 
@@ -105,11 +90,24 @@ class MainActivity : AppCompatActivity() {
         binding.tvError.visibility = View.GONE
         binding.ivErrorLogo.visibility = View.GONE
 
-        val filtered = list.filter { it.averageRating >= 8.9 }
-        Log.d("Movies_TAG", filtered.toString())
+        // Filter high-rated movies for banner
+        val bannerMovies = list.filter { it.averageRating >= 8.9 }
+        Log.d("Movies_TAG", "Banner movies: ${bannerMovies.size}")
 
-        bannerAdapter.submitList(filtered)
-        mainAdapter.submitList(list)
+        // Build the list with banner at the top, followed by all movies
+        val movieListItems = buildList<MovieListItem> {
+            // Add banner section if there are banner movies
+            if (bannerMovies.isNotEmpty()) {
+                add(MovieListItem.BannerItem(bannerMovies))
+            }
+
+            // Add all regular movies as vertical items
+            list.forEach { movie ->
+                add(MovieListItem.VerticalItem(movie))
+            }
+        }
+
+        unifiedAdapter.submitList(movieListItems)
     }
 
     private fun showError(message: String) {
