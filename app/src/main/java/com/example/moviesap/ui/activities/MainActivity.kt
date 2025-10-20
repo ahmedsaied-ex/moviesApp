@@ -75,12 +75,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupPaginationListener() {
         binding.rvMainMovies.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) { // dy is the vertical scrolling & dx are the horizontal scrolling
                 super.onScrolled(recyclerView, dx, dy)
 
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                val visibleItemCount = layoutManager.childCount
-                val totalItemCount = layoutManager.itemCount
+                val visibleItemCount = layoutManager.childCount  //number of items that is show in the screen
+                val totalItemCount = layoutManager.itemCount    // number of items in the adapter right now
                 val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
 
                 // Load more when user is 5 items away from the bottom
@@ -125,6 +125,9 @@ class MainActivity : AppCompatActivity() {
         isLoadingMore = true
 
         Log.d("MainActivity", "Loading more state activated")
+        val currentList = mainAdapter.currentList.toMutableList()
+        currentList.add(MovieListItem.LoadingItem)
+        mainAdapter.submitList(currentList)
     }
 
     private fun showMovies(list: List<MovieItem>, hasMore: Boolean) {
@@ -133,21 +136,16 @@ class MainActivity : AppCompatActivity() {
         binding.ivErrorLogo.visibility = View.GONE
         isLoadingMore = false
 
-        // Filter high-rated movies for banner
-        val filtered = list.filter { it.averageRating >= 8.9 }
+        val filtered = list.filter { it.averageRating >= 8.8 } // for top rated panner
 
         Log.d("MainActivity", "Displayed: ${list.size}, Banner: ${filtered.size}, HasMore: $hasMore")
 
-        // Create unified list with banner at top and movies below
-        val unifiedList = mutableListOf<MovieListItem>()
+        val unifiedList = mutableListOf<MovieListItem>() // two types list
 
-        // Add banner as first item
-        unifiedList.add(MovieListItem.BannerItem(filtered))
+        unifiedList.add(MovieListItem.BannerItem(filtered)) // first add banner item
 
-        // Add all movies as regular items
-        unifiedList.addAll(list.map { MovieListItem.RegularItem(it) })
+        unifiedList.addAll(list.map { MovieListItem.RegularItem(it) }) // add rest of movies
 
-        // Submit the unified list to adapter
         mainAdapter.submitList(unifiedList)
     }
 

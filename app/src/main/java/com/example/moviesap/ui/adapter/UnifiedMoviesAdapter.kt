@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.moviesap.data.models.MovieItem
 import com.example.moviesap.databinding.ItemBannerBinding
+import com.example.moviesap.databinding.ItemLoadingBinding
 import com.example.moviesap.databinding.MovieItemLayoutBinding
 import com.example.moviesap.ui.MovieListItem
 
@@ -18,12 +19,14 @@ class UnifiedMoviesAdapter(
     companion object {
         private const val VIEW_TYPE_BANNER = 0
         private const val VIEW_TYPE_MOVIE = 1
+        private const val VIEW_TYPE_LOADING = 2
     }
 
     override fun getItemViewType(position: Int): Int {
         return when (getItem(position)) {
             is MovieListItem.BannerItem -> VIEW_TYPE_BANNER
             is MovieListItem.RegularItem -> VIEW_TYPE_MOVIE
+            is MovieListItem.LoadingItem -> VIEW_TYPE_LOADING
         }
     }
 
@@ -36,6 +39,14 @@ class UnifiedMoviesAdapter(
                     false
                 )
                 BannerViewHolder(binding)
+            }
+            VIEW_TYPE_LOADING -> {
+                val binding = ItemLoadingBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+                LoadingViewHolder(binding)
             }
             else -> {
                 val binding = MovieItemLayoutBinding.inflate(
@@ -52,6 +63,7 @@ class UnifiedMoviesAdapter(
         when (val item = getItem(position)) {
             is MovieListItem.BannerItem -> (holder as BannerViewHolder).bind(item.movies)
             is MovieListItem.RegularItem -> (holder as MovieViewHolder).bind(item.movie)
+            is MovieListItem.LoadingItem -> {}
         }
     }
 
@@ -79,12 +91,16 @@ class UnifiedMoviesAdapter(
         }
     }
 
+    inner class LoadingViewHolder(binding: ItemLoadingBinding) :
+        RecyclerView.ViewHolder(binding.root)
+
     class MovieListDiffCallback : DiffUtil.ItemCallback<MovieListItem>() {
         override fun areItemsTheSame(oldItem: MovieListItem, newItem: MovieListItem): Boolean {
             return when {
                 oldItem is MovieListItem.BannerItem && newItem is MovieListItem.BannerItem -> true
                 oldItem is MovieListItem.RegularItem && newItem is MovieListItem.RegularItem ->
                     oldItem.movie.id == newItem.movie.id
+                oldItem is MovieListItem.LoadingItem && newItem is MovieListItem.LoadingItem -> true
                 else -> false
             }
         }
